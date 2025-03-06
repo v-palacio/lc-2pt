@@ -1,0 +1,31 @@
+###############################################
+#           Force field parameters            #
+###############################################
+
+# Neighbor list parameters
+neighbor 2.0 nsq
+neigh_modify every 1 delay 1 check yes
+comm_modify vel yes
+comm_modify cutoff 4.0
+
+# Bond parameters
+bond_style ${bonds_style}
+# special_bonds: 1-2 (bonded) and 1-3 (angle) pairs excluded from LJ
+# Only 1-4 and greater have full LJ interactions
+special_bonds lj 0.0 0.0 1.0
+bond_coeff * ${bonds_k} ${bonds_r0}
+
+# Angle parameters
+angle_style ${angles_style}
+angle_coeff 1 ${angles_k} ${angles_theta0}
+
+# Non-bonded interactions
+pair_style ${pair_style} ${pair_cutoff}
+# Shift ensures energy goes smoothly to zero at cutoff
+pair_modify shift ${pair_shift}
+pair_coeff * * ${pair_epsilon} ${pair_sigma} ${pair_cutoff}
+
+# Groups for asymmetric rod analysis
+group tail type 1    # Tail beads (will be negative in future)
+group head type 2    # Head beads (will be positive in future)
+group core type 3    # Core/internal beads 

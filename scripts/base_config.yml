@@ -1,0 +1,107 @@
+# System definition
+box:
+  elongation: 3
+
+# Molecular topology
+charges:
+  T: 0.0  # Terminal bead
+  H: 0.0  # Head bead
+  B: 0.0  # Body bead
+
+# Force field parameters
+bonds:
+  style: harmonic
+  k: 300.0
+  r0: 1.0
+
+angles:
+  style: harmonic
+  k: 500.0
+  theta0: 180.0
+
+pair:
+  style: lj/cut
+  cutoff: 2.5
+  epsilon: 1.0
+  sigma: 1.0
+  shift: "yes"
+
+# Integration parameters
+timestep: 0.001
+bead_volume: PI/6
+
+# Minimization
+minimization:
+  etol: 1.0e-4
+  ftol: 1.0e-6
+  maxiter: 100
+  maxeval: 1000
+
+# Phase transition protocol
+temperature: 1.0
+pressure: 1.0
+
+# Temperature stages
+t_iso: 2.0    # Isotropic phase
+t_nem: 1.2    # Nematic phase
+t_sm: 1.0     # Smectic phase
+
+# Thermostat and barostat damping
+t_damp_iso: 0.1      # Fast initial equilibration
+p_damp_iso: 100.0
+t_damp_nem: 1.0      # Controlled cooling to nematic
+p_damp_nem: 100.0
+t_damp_sm: 5.0       # Slower cooling to smectic
+p_damp_sm: 100.0
+t_damp_prod: 10.0    # Production dynamics
+p_damp_prod: 100.0
+
+# Simulation stages
+steps_iso: 1500000   # Isotropic equilibration
+steps_nem: 1500000   # Nematic transition
+steps_sm: 1500000    # Smectic transition
+npt_steps: 100000    # Production NPT
+nve_steps: 32000     # 2PT sampling
+prod_cycles: 20      # Number of production cycles
+
+# Output control
+thermo_freq: 1000
+dump_freq: 1000
+restart_freq: 50000
+
+# LAMMPS variables to be protected from being replaced by template
+cycle: ${cycle}     
+
+# Temperature schedule for phase transitions
+temperature_schedule:
+  isotropic:
+    temp: 2.0
+    steps: 1500000
+    temp_damp: 0.1
+    press_damp: 100.0
+  nematic:
+    temp: 1.2
+    steps: 1500000
+    temp_damp: 1.0
+    press_damp: 100.0
+  smectic:
+    temp: 1.0
+    steps: 1500000
+    temp_damp: 5.0
+    press_damp: 100.0
+
+# Modified equilibration parameters
+equilibration:
+  # Remove existing stage1-4 definitions
+  initial_temp: 2.0    # Start in isotropic phase
+  final_temp: 1.0      # End in potential smectic phase
+  cooling_rate: 0.0001 # Temperature decrease per timestep
+  steps_per_stage: 1500000
+  final:
+    steps: 9000000
+
+production:
+  npt_steps: 100000    
+  nve_steps: 32000     
+  temp_damp: 10.0      
+  press_damp: 100.0    # Keep pressure coupling constant 

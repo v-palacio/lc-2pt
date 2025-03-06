@@ -1,0 +1,16 @@
+###############################################
+# Initialization parameters for LC simulation  #
+###############################################
+
+# Temperature and pressure
+variable T equal ${temperature}
+variable P equal ${pressure}
+variable dt equal ${timestep}
+
+# System size
+variable npart equal ${n_molecules}
+
+# Box dimensions
+variable lxhalf equal ${box_limit}
+variable lyhalf equal ${box_limit_y}
+variable lzhalf equal ${box_limit}
