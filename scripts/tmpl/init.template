@@ -3,7 +3,6 @@
 ###############################################
 
 # Temperature and pressure
-variable T equal ${temperature}
 variable P equal ${pressure}
 variable dt equal ${timestep}
 
@@ -11,6 +10,6 @@ variable dt equal ${timestep}
 variable npart equal ${n_molecules}
 
 # Box dimensions
-variable lxhalf equal ${box_limit}
+variable lxhalf equal ${box_limit_x}
 variable lyhalf equal ${box_limit_y}
-variable lzhalf equal ${box_limit}
+variable lzhalf equal ${box_limit_z}

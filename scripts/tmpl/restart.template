@@ -1,0 +1,70 @@
+# System setup
+units lj
+dimension 3
+boundary p p p
+atom_style full
+
+# Read from equilibrated state
+include "system.init"
+pair_style lj/cut 6.0
+angle_style harmonic
+bond_style harmonic
+
+read_data data/equilibrated.data nocoeff
+
+include "system.settings"
+include "system.operations"
+
+
+# Output settings
+thermo_style custom step temp press pe ke etotal density v_vol_fraction
+thermo ${thermo_freq}
+restart ${restart_freq} data/restart.*
+
+#####################
+# Production cycles #
+#####################
+variable cycle loop 2 ${prod_cycles}
+label cycle_start
+
+# NPH + Langevin phase
+fix 1 all nph iso ${pressure} ${pressure} ${production_press_damp}
+fix 2 all langevin ${production_temp} ${production_temp} ${production_temp_damp} 56789
+fix 3 all recenter INIT INIT INIT
+
+# Regular trajectory output for NPH phase
+dump npt all custom ${dump_freq} traj/npt.${cycle}.lammpstrj id type mol x y z vx vy vz
+
+run ${production_npt_steps}
+write_data data/npt.${cycle}.data pair ij
+undump npt
+unfix 1
+unfix 2
+unfix 3
+
+# NVE + Langevin for 2PT analysis
+fix 1 all nve
+fix 2 all langevin ${production_temp} ${production_temp} ${production_temp_damp} 67890
+fix 3 all recenter INIT INIT INIT
+
+# High-frequency sampling for 2PT analysis
+dump 2pt all custom ${production_2pt_freq} traj/2pt.${cycle}.vel id type mol x y z vx vy vz
+dump_modify 2pt sort id
+
+dump nvt all custom ${dump_freq} traj/nvt.${cycle}.lammpstrj id type mol x y z vx vy vz
+
+run ${production_nvt_steps}
+write_data data/nvt.${cycle}.data pair ij
+undump 2pt  
+undump nvt
+unfix 1
+unfix 2
+unfix 3
+next cycle
+
+if "${cycle} <= ${prod_cycles}" {
+    jump restart.in cycle_start
+}
+
+# Final log
+log logs/simulation.log

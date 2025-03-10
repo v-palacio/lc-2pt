@@ -6,7 +6,7 @@
 neighbor 2.0 nsq
 neigh_modify every 1 delay 1 check yes
 comm_modify vel yes
-comm_modify cutoff 4.0
+comm_modify cutoff 6.0
 
 # Bond parameters
 bond_style ${bonds_style}
@@ -23,7 +23,7 @@ angle_coeff 1 ${angles_k} ${angles_theta0}
 pair_style ${pair_style} ${pair_cutoff}
 # Shift ensures energy goes smoothly to zero at cutoff
 pair_modify shift ${pair_shift}
-pair_coeff * * ${pair_epsilon} ${pair_sigma} ${pair_cutoff}
+pair_coeff * * ${pair_epsilon} ${pair_sigma} ${pair_wca_cutoff}
 
 # Groups for asymmetric rod analysis
 group tail type 1    # Tail beads (will be negative in future)

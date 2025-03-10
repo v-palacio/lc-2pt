@@ -3,6 +3,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# LAMMPS files
+*.data
+*.lammpstrj
+*.vel
+*.restart
+*.log
+data/*
+traj/*
+logs/*
+temperature_sweep/*
+
+
 # C extensions
 *.so
 
