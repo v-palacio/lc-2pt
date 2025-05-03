@@ -21,7 +21,7 @@ fix vacf_avg all ave/time 1 1 1000 c_vacf file data/vacf.dat mode vector
 variable vol equal vol
 variable density equal density
 # Define bead volume (π/6 for unit diameter spheres)
-variable bead_volume equal ${bead_volume}
+variable bead_volume equal ${system.bead_volume}
 variable vol_fraction equal count(all)*v_bead_volume/v_vol
 
 # Per-atom properties
@@ -31,7 +31,7 @@ compute stress all stress/atom NULL
 
 # Basic molecular properties
 compute gyration all gyration/chunk mol
-compute rdf all rdf 100 * * cutoff 2.5
+compute rdf all rdf 100 * * cutoff ${pair.cutoff}
 
 # Dipole computations
 compute dipole all dipole/chunk mol

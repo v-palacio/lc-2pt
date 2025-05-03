@@ -1,9 +1,8 @@
-
 # Molecular topology
 charges:
-  T: 0.0  # Terminal bead
-  H: 0.0  # Head bead
-  B: 0.0  # Body bead
+  T: 0.0    # Terminal bead
+  H: 0.0    # Head bead
+  B: 0.0    # Body bead
 
 # Force field parameters
 bonds:
@@ -24,57 +23,62 @@ pair:
   shift: "yes"
   wca_cutoff: 1.122
 
-# Integration parameters
-timestep: 0.001
-bead_volume: PI/6
+# System parameters
+system:
+  timestep: 0.001
+  bead_volume: PI/6
+  pressure: 1.0
+  tempinit: 0.1
 
-# Minimization
+# Minimization settings
 minimization:
   etol: 1.0e-4
   ftol: 1.0e-6
   maxiter: 100
   maxeval: 1000
 
-# Phase transition protocol
-pressure: 1.0
-
-prod_cycles: 20      # Number of production cycles
-
 # Output control
-thermo_freq: 1000
-dump_freq: 10000
-restart_freq: 50000
+output:
+  thermo_freq: 1000
+  dump_freq: 10000
+  restart_freq: 50000
+  prod_cycles: 20    # Number of production cycles
 
-# LAMMPS variables to be protected from being replaced by template
-cycle: ${cycle}     
-
-# Annealing for phase transitions
+# Annealing protocol (total steps = 15M)
 annealing:
-  iso:
+  step0:    # Low T compression
+    temp: 0.1
+    steps: 500000      
+    temp_damp: 0.1         
+    press_damp: 1.0  
+  
+  step1:    # Heat
     temp: 2.0
-    steps: 500000
-    temp_damp: 0.1
-    press_damp: 100.0
-  stage1:
-    temp: 1.2
-    steps: 500000
-    temp_damp: 1.0
-    press_damp: 100.0
-  stage2:
-    temp: 1.0
-    steps: 500000
-    temp_damp: 5.0
-    press_damp: 100.0
-  final:
-    temp: 0.5
-    steps: 2000000
-    temp_damp: 10.0
-    press_damp: 100.0
+    steps: 100000      
+    temp_damp: 1.0      
+    press_damp: 1.0     
+  
+  step2:    # Hold
+    temp: 2.0
+    steps: 1000000      
+    temp_damp: 0.1      
+    press_damp: 1.0     
 
+# Production run parameters
 production:
-  temp: 0.5
-  npt_steps: 100000    
-  nvt_steps: 32000   
+  temp: 0.2     
+  npt_steps: 100000     
+  nvt_steps: 32000      
   2pt_freq: 16
-  temp_damp: 10.0      
-  press_damp: 100.0    # Keep pressure coupling constant 
+  temp_damp: 1.0      
+  press_damp: 10.0    # Keep pressure coupling constant
+
+# LAMMPS variables to be protected from template replacement
+protected_vars:
+  cycle: $cycle
+  T: $T
+  Tstart: $Tstart
+  Tend: $Tend
+  Tstep: $Tstep
+  loop: $loop 
+  pe_diff: $pe_diff

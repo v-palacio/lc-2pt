@@ -15,106 +15,107 @@ include "system.settings"
 include "system.operations"
 
 # Output settings
-thermo_style custom step temp press pe ke etotal density v_vol_fraction
-thermo ${thermo_freq}
+thermo_style custom step temp press pe ke etotal density v_vol_fraction pxx pyy pzz pxy pxz pyz
+thermo ${output.thermo_freq}
 
 # Regular trajectory for visualization
-dump traj all custom ${dump_freq} traj/trajectory.lammpstrj id type mol x y z vx vy vz
+dump traj all custom ${output.dump_freq} traj/trajectory.lammpstrj id type mol x y z vx vy vz
 
 # Simulation parameters
-timestep ${timestep}
-restart ${restart_freq} data/restart.*
+timestep ${system.timestep}
+restart ${output.restart_freq} data/restart.*
 
 # Set initial velocities
-velocity all create 0.1 12345 dist gaussian
-#run 1000
+velocity all create ${system.tempinit} 12345 dist gaussian
 
 # Energy minimization (conjugate gradient)
 min_style cg
-minimize ${minimization_etol} ${minimization_ftol} ${minimization_maxiter} ${minimization_maxeval}
+minimize ${minimization.etol} ${minimization.ftol} ${minimization.maxiter} ${minimization.maxeval}
 write_data data/minimized.data pair ij
 
-# Progressive temperature stepping for phase transitions
-# Isotropic phase equilibration
-fix 1 all nph iso ${pressure} ${pressure} ${annealing_iso_press_damp}
-fix 2 all langevin ${annealing_iso_temp} ${annealing_iso_temp} ${annealing_iso_temp_damp} 12345
-fix 3 all recenter INIT INIT INIT
-run ${annealing_iso_steps}
-unfix 1
-unfix 2
-unfix 3
+# Stage 0 - Initial compression and equilibration
+fix nph_0 all nph iso ${system.pressure} ${system.pressure} ${annealing.step0.press_damp}
+fix langevin_0 all langevin ${annealing.step0.temp} ${annealing.step0.temp} ${annealing.step0.temp_damp} 23456
+fix recenter_0 all recenter INIT INIT INIT
+run ${annealing.step0.steps}
+unfix nph_0
+unfix langevin_0
+unfix recenter_0
 
-# Annealing stage 1
-fix 1 all nph iso ${pressure} ${pressure} ${annealing_stage1_press_damp}
-fix 2 all langevin ${annealing_stage1_temp} ${annealing_stage1_temp} ${annealing_stage1_temp_damp} 23456
-fix 3 all recenter INIT INIT INIT
-run ${annealing_stage1_steps}
-unfix 1
-unfix 2
-unfix 3
+# Stage 1 - Heating
+variable Tstart equal ${annealing.step0.temp}
+variable Tend equal ${annealing.step1.temp}
+variable Tstep equal 0.1
+variable loop index 0
+label loop_ramp
+  variable T equal "v_Tstart + v_Tstep * v_loop"
+  if "v_T > v_Tend" then "jump SELF done_ramp"
+  fix nph_1 all nph iso ${system.pressure} ${system.pressure} ${annealing.step1.press_damp}
+  fix langevin_1 all langevin v_T v_T ${annealing.step1.temp_damp} 56789
+  fix recenter_1 all recenter INIT INIT INIT
+  run ${annealing.step1.steps}
+  unfix nph_1
+  unfix langevin_1
+  unfix recenter_1
+  next loop
+  jump SELF loop_ramp
+label done_ramp
 
-# Annealing stage 2
-fix 1 all nph iso ${pressure} ${pressure} ${annealing_stage2_press_damp}
-fix 2 all langevin ${annealing_stage2_temp} ${annealing_stage2_temp} ${annealing_stage2_temp_damp} 34567
-fix 3 all recenter INIT INIT INIT
-run ${annealing_stage2_steps}
-unfix 1
-unfix 2
-unfix 3
-
-# Final equilibration
-fix 1 all nph iso ${pressure} ${pressure} ${annealing_final_press_damp}
-fix 2 all langevin ${annealing_final_temp} ${annealing_final_temp} ${annealing_final_temp_damp} 45678
-fix 3 all recenter INIT INIT INIT
-run ${annealing_final_steps}
+# Stage 2 - Hold 
+fix nph_2 all nph iso ${system.pressure} ${system.pressure} ${annealing.step2.press_damp}
+fix langevin_2 all langevin ${annealing.step2.temp} ${annealing.step2.temp} ${annealing.step2.temp_damp} 45678
+fix recenter_2 all recenter INIT INIT INIT
+run ${annealing.step2.steps}
 write_data data/equilibrated.data pair ij
-unfix 1
-unfix 2
-unfix 3
+unfix nph_2
+unfix langevin_2
+unfix recenter_2
+
+variable pe_diff equal c_thermo_pe[10]-c_thermo_pe[0]
+if "${protected_vars.pe_diff} > 1.0" then "print 'System not equilibrated'"
 
 #####################
 # Production cycles #
 #####################
-variable cycle loop ${prod_cycles}
+variable cycle loop 1 ${output.prod_cycles}
 label cycle_start
 
 # NPH + Langevin phase
-fix 1 all nph iso ${pressure} ${pressure} ${production_press_damp}
-fix 2 all langevin ${production_temp} ${production_temp} ${production_temp_damp} 56789
-fix 3 all recenter INIT INIT INIT
+fix nph_prod all nph iso ${system.pressure} ${system.pressure} ${production.press_damp}
+fix langevin_prod all langevin ${production.temp} ${production.temp} ${production.temp_damp} 78901
+fix recenter_prod all recenter INIT INIT INIT
 
 # Regular trajectory output for NPH phase
-dump npt all custom ${dump_freq} traj/npt.${cycle}.lammpstrj id type mol x y z vx vy vz
+dump dump_prod all custom ${output.dump_freq} traj/npt.${protected_vars.cycle}.lammpstrj id type mol x y z vx vy vz
 
-run ${production_npt_steps}
-write_data data/npt.${cycle}.data pair ij
-undump npt
-unfix 1
-unfix 2
-unfix 3
+run ${production.npt_steps}
+write_data data/npt.${protected_vars.cycle}.data pair ij
+undump dump_prod
+unfix nph_prod
+unfix langevin_prod
+unfix recenter_prod
 
 # NVE + Langevin for 2PT analysis
-fix 1 all nve
-fix 2 all langevin ${production_temp} ${production_temp} ${production_temp_damp} 67890
-fix 3 all recenter INIT INIT INIT
+fix nve_run all nve
+fix langevin_run all langevin ${production.temp} ${production.temp} ${production.temp_damp} 89012
+fix recenter_run all recenter INIT INIT INIT
 
 # High-frequency sampling for 2PT analysis
-dump 2pt all custom ${production_2pt_freq} traj/2pt.${cycle}.vel id type mol x y z vx vy vz
-dump_modify 2pt sort id
+dump dump_2pt all custom ${production.2pt_freq} traj/2pt.${protected_vars.cycle}.vel id type mol x y z vx vy vz
+dump_modify dump_2pt sort id
 
-dump nvt all custom ${dump_freq} traj/nvt.${cycle}.lammpstrj id type mol x y z vx vy vz
+dump dump_nvt all custom ${output.dump_freq} traj/nvt.${protected_vars.cycle}.lammpstrj id type mol x y z vx vy vz
 
-run ${production_nvt_steps}
-write_data data/nvt.${cycle}.data pair ij
-undump 2pt  
-undump nvt
-unfix 1
-unfix 2
-unfix 3
+run ${production.nvt_steps}
+write_data data/nvt.${protected_vars.cycle}.data pair ij
+undump dump_2pt  
+undump dump_nvt
+unfix nve_run
+unfix langevin_run
+unfix recenter_run
+
 next cycle
-if "${cycle} == ${prod_cycles}" {
-    jump run.in cycle_start
-}
+jump SELFcycle_start
 
 # Final log
 log logs/simulation.log

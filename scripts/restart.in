@@ -18,25 +18,25 @@ include "system.operations"
 
 # Output settings
 thermo_style custom step temp press pe ke etotal density v_vol_fraction
-thermo ${output.thermo_freq}
-restart ${output.restart_freq} data/restart.*
+thermo 1000
+restart 50000 data/restart.*
 
 #####################
 # Production cycles #
 #####################
-variable cycle loop 2 ${output.prod_cycles}
+variable cycle loop 2 20
 label cycle_start
 
 # NPH + Langevin phase
-fix 1 all nph iso ${system.pressure} ${system.pressure} ${production.press_damp}
-fix 2 all langevin ${production.temp} ${production.temp} ${production.temp_damp} 56789
+fix 1 all nph iso 1.0 1.0 10.0
+fix 2 all langevin 0.2 0.2 1.0 56789
 fix 3 all recenter INIT INIT INIT
 
 # Regular trajectory output for NPH phase
-dump npt all custom ${output.dump_freq} traj/npt.${protected_vars.cycle}.lammpstrj id type mol x y z vx vy vz
+dump npt all custom 10000 traj/npt.$cycle.lammpstrj id type mol x y z vx vy vz
 
-run ${production.npt_steps}
-write_data data/npt.${protected_vars.cycle}.data pair ij
+run 100000
+write_data data/npt.$cycle.data pair ij
 undump npt
 unfix 1
 unfix 2
@@ -44,17 +44,17 @@ unfix 3
 
 # NVE + Langevin for 2PT analysis
 fix 1 all nve
-fix 2 all langevin ${production.temp} ${production.temp} ${production.temp_damp} 67890
+fix 2 all langevin 0.2 0.2 1.0 67890
 fix 3 all recenter INIT INIT INIT
 
 # High-frequency sampling for 2PT analysis
-dump 2pt all custom ${production.2pt_freq} traj/2pt.${protected_vars.cycle}.vel id type mol x y z vx vy vz
+dump 2pt all custom 16 traj/2pt.$cycle.vel id type mol x y z vx vy vz
 dump_modify 2pt sort id
 
-dump nvt all custom ${output.dump_freq} traj/nvt.${protected_vars.cycle}.lammpstrj id type mol x y z vx vy vz
+dump nvt all custom 10000 traj/nvt.$cycle.lammpstrj id type mol x y z vx vy vz
 
-run ${production.nvt_steps}
-write_data data/nvt.${protected_vars.cycle}.data pair ij
+run 32000
+write_data data/nvt.$cycle.data pair ij
 undump 2pt  
 undump nvt
 unfix 1

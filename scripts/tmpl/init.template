@@ -3,13 +3,13 @@
 ###############################################
 
 # Temperature and pressure
-variable P equal ${pressure}
-variable dt equal ${timestep}
+variable P equal ${system.pressure}
+variable dt equal ${system.timestep}
 
 # System size
-variable npart equal ${n_molecules}
+variable npart equal ${system.n_molecules}
 
 # Box dimensions
-variable lxhalf equal ${box_limit_x}
-variable lyhalf equal ${box_limit_y}
-variable lzhalf equal ${box_limit_z}
+variable lxhalf equal ${system.box_limit_x}
+variable lyhalf equal ${system.box_limit_y}
+variable lzhalf equal ${system.box_limit_z}

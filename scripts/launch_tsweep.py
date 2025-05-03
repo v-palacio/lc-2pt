@@ -9,7 +9,7 @@ from lc_initial.main import generate_coords, generate_lammps
 from lc_initial.file_writer import read_box_dimensions
 
 # Load base configuration
-with open('scripts/base_config.yml', 'r') as f:
+with open('base_config.yml', 'r') as f:
     base_config = yaml.safe_load(f)
 
 # Define temperature range
@@ -19,29 +19,37 @@ final_temps = np.round(np.linspace(1.6, 0.2, 15), decimals=1)
 if not os.path.exists('temperature_sweep'):
     os.makedirs('temperature_sweep')
 
-#_, box_dims = generate_coords(n_molecules = 4500, mol_length = 8, box_limit = 200,
-#                config_path = 'scripts/base_config.yml', init_orient = 'crystal', wiggle_factor = 0.3)
+# Read box dimensions once
+#_, box_dims = generate_coords(n_molecules=2000, mol_length=8, box_limit=50, init_orient='crystal', wiggle_factor=0.2)
+
 box_dims = read_box_dimensions("system.data")
+print(f"Using box dimensions: {box_dims}")
+
 # Generate configurations for each temperature
 for i, final_temp in enumerate(final_temps):
-    config = deepcopy(base_config)
+    config = deepcopy(base_config)  
     
-    # Keep isotropic temperature at 2.0
-    T_iso = 2.0
+    # Update annealing protocol
+    config['annealing']['step0']['temp'] = 0.1
+    config['annealing']['step1']['temp'] = round(float(final_temp), 1)
+    config['annealing']['step2']['temp'] = round(float(final_temp), 1)
     
-    # Calculate intermediate temperatures for smooth cooling
-    # Convert numpy floats to Python floats
-    T_stage1 = float(T_iso - (T_iso - final_temp) * 0.33)
-    T_stage2 = float(T_iso - (T_iso - final_temp) * 0.66)
-    final_temp = float(final_temp)
+    # Update production temperature
+    config['production']['temp'] = round(float(final_temp), 1)
     
-    # Update configuration
-    config['annealing']['iso']['temp'] = T_iso
-    config['annealing']['stage1']['temp'] = T_stage1
-    config['annealing']['stage2']['temp'] = T_stage2
-    config['annealing']['final']['temp'] = final_temp
-    config['production']['temp'] = final_temp
-
+    # Add system parameters directly to config
+    if 'system' not in config:
+        config['system'] = {}
+    config['system'].update({
+        'n_molecules': 2000,
+        'mol_length': 8,
+        'box_limit_x': box_dims[0],
+        'box_limit_y': box_dims[1],
+        'box_limit_z': box_dims[2],
+        'pressure': 1.0,
+        'timestep': 0.001
+    })
+    
     # Create and setup directory
     run_dir = f'temperature_sweep/T_{final_temp:.1f}'
     if not os.path.exists(run_dir):
@@ -55,25 +63,26 @@ for i, final_temp in enumerate(final_temps):
     # Generate simulation files
     print(f"\nGenerating system for T = {final_temp:.1f}")
     try:
-        generate_lammps(n_molecules = 4500, mol_length = 8, box_dims = box_dims,
-                        config_path = config_path, template_dir = 'scripts/tmpl')
+        generate_lammps(n_molecules=2000, mol_length=8, box_dims=box_dims,
+                       config_path=config_path, template_dir='tmpl')
+        
         # Move system files and run.in to run directory
         for file in ['system.init', 'system.settings', 'system.operations', 'run.in']:
             shutil.move(file, run_dir)
         # Copy system.data since we'll need it for other temperatures
         shutil.copy('system.data', run_dir)
-  
+
     except subprocess.CalledProcessError as e:
         print(f"Error generating files for T = {final_temp:.3f}")
         print(f"Error: {e}")
         continue
-  
+
     # Copy and customize submit script
-    with open('scripts/submit.sh', 'r') as f:
+    with open('submit.sh', 'r') as f:
         submit_content = f.read()
     
     # Update job name to reflect temperature
-    submit_content = submit_content.replace('#$ -N LC_P0.6', f'#$ -N LC_T{final_temp:.3f}')
+    submit_content = submit_content.replace('#$ -N LC_P0.6', f'#$ -N LC_upT{final_temp:.1}')
     
     # Write modified submit script to run directory
     with open(f'{run_dir}/submit.sh', 'w') as f:
@@ -86,9 +95,7 @@ for i, final_temp in enumerate(final_temps):
 
 print("\nTemperature stages summary:")
 for t in final_temps:
-    T_stage1 = float(2.0 - (2.0 - t) * 0.33)
-    T_stage2 = float(2.0 - (2.0 - t) * 0.66)
-    print(f"Target T = {t:.3f}: Iso(2.0) → Stage1({T_stage1:.3f}) → Stage2({T_stage2:.3f}) → Final({t:.3f})")
+    print(f"Target T = {t:.3f}: Iso(2.0) → Final({t:.3f})")
 
 
 
