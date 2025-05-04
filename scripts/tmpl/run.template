@@ -49,9 +49,9 @@ variable Tstep equal 0.1
 variable loop index 0
 label loop_ramp
   variable T equal "v_Tstart + v_Tstep * v_loop"
-  if "v_T > v_Tend" then "jump SELF done_ramp"
+  if "${protected_vars.T} > ${protected_vars.Tend}" then "jump SELF done_ramp"
   fix nph_1 all nph iso ${system.pressure} ${system.pressure} ${annealing.step1.press_damp}
-  fix langevin_1 all langevin v_T v_T ${annealing.step1.temp_damp} 56789
+  fix langevin_1 all langevin ${protected_vars.T} ${protected_vars.T} ${annealing.step1.temp_damp} 56789
   fix recenter_1 all recenter INIT INIT INIT
   run ${annealing.step1.steps}
   unfix nph_1
@@ -70,9 +70,6 @@ write_data data/equilibrated.data pair ij
 unfix nph_2
 unfix langevin_2
 unfix recenter_2
-
-variable pe_diff equal c_thermo_pe[10]-c_thermo_pe[0]
-if "${protected_vars.pe_diff} > 1.0" then "print 'System not equilibrated'"
 
 #####################
 # Production cycles #
@@ -115,7 +112,7 @@ unfix langevin_run
 unfix recenter_run
 
 next cycle
-jump SELFcycle_start
+jump SELF cycle_start
 
 # Final log
 log logs/simulation.log

@@ -75,10 +75,10 @@ production:
 
 # LAMMPS variables to be protected from template replacement
 protected_vars:
-  cycle: $cycle
-  T: $T
-  Tstart: $Tstart
-  Tend: $Tend
-  Tstep: $Tstep
-  loop: $loop 
-  pe_diff: $pe_diff
+  cycle: ${cycle}
+  T: ${T}
+  Tstart: ${Tstart}
+  Tend: ${Tend}
+  Tstep: ${Tstep}
+  loop: ${loop} 
+  pe_diff: ${pe_diff}

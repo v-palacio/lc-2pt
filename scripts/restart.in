@@ -33,10 +33,10 @@ fix 2 all langevin 0.2 0.2 1.0 56789
 fix 3 all recenter INIT INIT INIT
 
 # Regular trajectory output for NPH phase
-dump npt all custom 10000 traj/npt.$cycle.lammpstrj id type mol x y z vx vy vz
+dump npt all custom 10000 traj/npt.${cycle}.lammpstrj id type mol x y z vx vy vz
 
 run 100000
-write_data data/npt.$cycle.data pair ij
+write_data data/npt.${cycle}.data pair ij
 undump npt
 unfix 1
 unfix 2
@@ -48,13 +48,13 @@ fix 2 all langevin 0.2 0.2 1.0 67890
 fix 3 all recenter INIT INIT INIT
 
 # High-frequency sampling for 2PT analysis
-dump 2pt all custom 16 traj/2pt.$cycle.vel id type mol x y z vx vy vz
+dump 2pt all custom 16 traj/2pt.${cycle}.vel id type mol x y z vx vy vz
 dump_modify 2pt sort id
 
-dump nvt all custom 10000 traj/nvt.$cycle.lammpstrj id type mol x y z vx vy vz
+dump nvt all custom 10000 traj/nvt.${cycle}.lammpstrj id type mol x y z vx vy vz
 
 run 32000
-write_data data/nvt.$cycle.data pair ij
+write_data data/nvt.${cycle}.data pair ij
 undump 2pt  
 undump nvt
 unfix 1
